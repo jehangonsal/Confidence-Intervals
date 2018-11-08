@@ -1,0 +1,65 @@
+
+### Let's simulate data to create our overlapping confidence intervals
+
+### Simulations have some randomness so you will get different results each time. 
+
+library(tidyverse)
+
+n = 120
+
+mean_1 = 100
+
+mean_2 = 105
+
+### Build our two distributions with standard deviations of 15 (standard for IQ)
+
+data <- rnorm(n, mean_1, 15) %>% as.data.frame()
+
+data <- cbind(data, rnorm(n, mean_2, 15))
+
+names(data) <- c("Normal", "Gifted")
+
+std <- function(x) {
+  x <- sd(x)/sqrt(length(x))
+  x
+  }
+
+### Get our confidence intervals
+
+ci_data <- rnorm(10000, mean(data$Normal), std(data$Normal)) %>% as.data.frame()
+
+ci_data <- cbind(ci_data, rnorm(10000, mean(data$Gifted), std(data$Gifted)))
+
+names(ci_data) <- c("Normal", "Gifted")
+
+ci_data <- ci_data %>% gather(key = "Class", value = "IQ")
+
+data <- data %>% gather(key = "Class", value = "IQ")
+
+sample_mean_1 <- data %>% filter(Class == "Gifted") %>% summarise(mean(IQ)) %>% round(1)
+
+sample_mean_2 <- data %>% filter(Class == "Normal") %>% summarise(mean(IQ)) %>% round(1)
+
+options(scipen = 999)
+
+p_val <- t.test(data = data, IQ ~ Class)[3] %>% as.numeric() %>% round(3)
+
+p_val <-ifelse(p_val == 0, "<.001")
+
+### Create our plot!
+
+ci_data %>% ggplot() + 
+  geom_violin(aes(x= Class, y = IQ), fill = "light blue", colour = "black", alpha = .6) + 
+  theme_bw() + 
+  labs(caption = paste("Sample size per group: ", n, "
+                       Mean estimates are", sample_mean_1,
+       "and", sample_mean_2, "
+       p =", p_val),
+       title = "Confidence Intervals Overlap but Significantly Different",
+       subtitle = "Violin plots indicate sampling distribution") +
+  geom_point(data = data, aes(x = Class, y = IQ), colour = "dark blue", alpha = .4) +
+  geom_errorbar(data = 
+                  ci_data %>% group_by(Class) %>% summarise(lower = quantile(IQ, .025), upper = quantile(IQ, .975)),
+                   aes(x = Class, group = Class, ymin = lower, ymax = upper), colour = "dark blue")
+
+
