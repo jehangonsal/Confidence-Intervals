@@ -26,9 +26,9 @@ std <- function(x) {
 
 ### Get our confidence intervals
 
-ci_data <- rnorm(10000, mean(data$Normal), std(data$Normal)) %>% as.data.frame()
+ci_data <- rnorm(100000, mean(data$Normal), std(data$Normal)) %>% as.data.frame()
 
-ci_data <- cbind(ci_data, rnorm(10000, mean(data$Gifted), std(data$Gifted)))
+ci_data <- cbind(ci_data, rnorm(100000, mean(data$Gifted), std(data$Gifted)))
 
 names(ci_data) <- c("Normal", "Gifted")
 
@@ -62,4 +62,8 @@ ci_data %>% ggplot() +
                   ci_data %>% group_by(Class) %>% summarise(lower = quantile(IQ, .025), upper = quantile(IQ, .975)),
                    aes(x = Class, group = Class, ymin = lower, ymax = upper), colour = "dark blue")
 
+### Check to make sure CIs match using bootstrapping
 
+ci_data %>% group_by(Class) %>% summarise(lower = quantile(IQ, .025), upper = quantile(IQ, .975))
+
+data %>% group_by(Class) %>% summarise(lower = mean(IQ) - 1.96*std(IQ), upper = mean(IQ) + 1.96*std(IQ))
